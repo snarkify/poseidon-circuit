@@ -359,6 +359,7 @@ dependencies = [
  "halo2_proofs",
  "halo2curves",
  "poseidon",
+ "rand_core",
 ]
 
 [[package]]
