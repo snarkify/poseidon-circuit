@@ -1,10 +1,14 @@
+use ff::{FromUniformBytes, PrimeField};
+use halo2_proofs::{
+    circuit::{Layouter, SimpleFloorPlanner},
+    plonk::{Circuit, Column, ConstraintSystem, Error, Instance},
+};
 use poseidon::Spec;
 
-use crate::main_gate::{MainGate, MainGateConfig, RegionCtx};
-use crate::poseidon_circuit::PoseidonChip;
-use ff::{FromUniformBytes, PrimeField};
-use halo2_proofs::circuit::{Layouter, SimpleFloorPlanner};
-use halo2_proofs::plonk::{Circuit, Column, ConstraintSystem, Error, Instance};
+use crate::{
+    main_gate::{MainGate, MainGateConfig, RegionCtx},
+    poseidon_circuit::PoseidonChip,
+};
 
 const T: usize = 4;
 const RATE: usize = 3;

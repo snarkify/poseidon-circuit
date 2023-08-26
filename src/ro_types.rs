@@ -1,7 +1,6 @@
+use halo2_proofs::{arithmetic::CurveAffine, circuit::AssignedCell, plonk::Error};
+
 use crate::main_gate::RegionCtx;
-use halo2_proofs::arithmetic::CurveAffine;
-use halo2_proofs::circuit::AssignedCell;
-use halo2_proofs::plonk::Error;
 
 /// A helper trait that defines the constants associated with a hash function
 pub trait ROConstantsTrait {
@@ -27,6 +26,7 @@ pub trait ROCircuitTrait<C: CurveAffine> {
     /// Initializes the hash function
     fn new(constants: Self::Constants) -> Self;
 
+    #[allow(clippy::type_complexity)]
     fn squeeze(
         &mut self,
         ctx: &mut RegionCtx<'_, C::Scalar>,

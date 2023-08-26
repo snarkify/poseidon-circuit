@@ -1,9 +1,11 @@
 #![allow(dead_code)]
-use crate::ro_types::{ROConstantsTrait, ROTrait};
+use std::{iter, marker::PhantomData, mem};
+
 use halo2_proofs::arithmetic::CurveAffine;
 use halo2curves::group::ff::{FromUniformBytes, PrimeField};
 use poseidon::{SparseMDSMatrix, Spec};
-use std::{iter, marker::PhantomData, mem};
+
+use crate::ro_types::{ROConstantsTrait, ROTrait};
 
 // adapted from: https://github.com/privacy-scaling-explorations/snark-verifier
 
@@ -33,7 +35,7 @@ impl<F: PrimeField + FromUniformBytes<64>, const T: usize, const RATE: usize> St
         assert!(RATE == T - 1);
         assert!(inputs.len() <= RATE);
 
-        self.inner[0] = self.inner[0] + pre_constants[0];
+        self.inner[0] += pre_constants[0];
         self.inner
             .iter_mut()
             .zip(pre_constants.iter())
@@ -154,7 +156,7 @@ impl<
             self.permutation(&[]);
         }
 
-        self.state.inner[1].clone()
+        self.state.inner[1]
     }
 
     fn permutation(&mut self, inputs: &[F]) {
@@ -193,8 +195,12 @@ impl<
 
 #[cfg(test)]
 mod tests {
+    use halo2curves::{
+        bn256::{Fr, G1Affine},
+        pasta::{EqAffine, Fp},
+    };
+
     use super::*;
-    use halo2curves::bn256::{Fr, G1Affine};
 
     #[test]
     fn test_poseidon_hash() {
@@ -211,7 +217,7 @@ mod tests {
         let output = poseidon.squeeze();
         // 0x2ce4016298e9e5fcaa94ccb686413e16add1bb813def8a3a0628aed46ea07749
         let out_hash = Fr::from_str_vartime(
-            "20304616028358001435806807494046171997958789835068077254356069730773893150537"
+            "20304616028358001435806807494046171997958789835068077254356069730773893150537",
         )
         .unwrap();
         assert_eq!(output, out_hash);

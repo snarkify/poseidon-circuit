@@ -1,11 +1,13 @@
-use crate::main_gate::{AssignedValue, MainGate, MainGateConfig, RegionCtx};
+use std::convert::TryInto;
+
 use ff::PrimeField;
 use halo2_proofs::{
     circuit::{AssignedCell, Chip, Value},
     plonk::Error,
 };
 use poseidon::Spec;
-use std::convert::TryInto;
+
+use crate::main_gate::{AssignedValue, MainGate, MainGateConfig, RegionCtx};
 
 pub struct PoseidonChip<F: PrimeField, const T: usize, const RATE: usize> {
     main_gate: MainGate<F, T>,
@@ -317,27 +319,28 @@ impl<F: PrimeField, const T: usize, const RATE: usize> PoseidonChip<F, T, RATE> 
     }
 
     pub fn squeeze(&mut self, ctx: &mut RegionCtx<'_, F>) -> Result<AssignedValue<F>, Error> {
-        //let buf = mem::take(&mut self.buf);
         let buf = self.buf.clone();
         let exact = buf.len() % RATE == 0;
-        let mut state = Vec::new();
-        let state0: [F; T] = poseidon::State::default().words();
-        for i in 0..T {
-            let si = ctx.assign_advice(
-                || "initial state",
-                self.main_gate.config().state[i],
-                Value::known(state0[i]),
-            )?;
-            state.push(si);
-        }
+
+        let mut state: [_; T] = self
+            .main_gate
+            .config()
+            .state
+            .iter()
+            .zip(poseidon::State::<F, T>::default().words().iter())
+            .map(|(col, val)| ctx.assign_advice(|| "initial state", *col, Value::known(*val)))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .expect("Safe, because zip two arrays");
+
         for chunk in buf.chunks(RATE) {
-            let next_state =
-                self.permutation(ctx, chunk.to_vec(), state[..].try_into().unwrap())?;
-            state = next_state.to_vec();
+            let next_state = self.permutation(ctx, chunk.to_vec(), &state)?;
+            state = next_state;
         }
+
         if exact {
-            let next_state = self.permutation(ctx, Vec::new(), state[..].try_into().unwrap())?;
-            state = next_state.to_vec();
+            let next_state = self.permutation(ctx, Vec::new(), &state)?;
+            state = next_state;
         }
 
         Ok(state[1].clone())
@@ -346,12 +349,14 @@ impl<F: PrimeField, const T: usize, const RATE: usize> PoseidonChip<F, T, RATE> 
 
 #[cfg(test)]
 mod tests {
+    use halo2_proofs::{
+        circuit::{Layouter, SimpleFloorPlanner},
+        plonk::{Circuit, Column, ConstraintSystem, Instance},
+    };
+    use halo2curves::{group::ff::FromUniformBytes, pasta::Fp};
+
     use super::*;
     use crate::main_gate::MainGateConfig;
-    use halo2_proofs::circuit::{Layouter, SimpleFloorPlanner};
-    use halo2_proofs::plonk::{Circuit, Column, ConstraintSystem, Instance};
-    use halo2curves::group::ff::FromUniformBytes;
-    use halo2curves::pasta::Fp;
 
     const T: usize = 3;
     const RATE: usize = 2;

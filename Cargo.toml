@@ -3,12 +3,9 @@ name = "poseidon_circuit"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 rand_core = { version = "0.6", default-features = false }
 ff = "0.13"
 halo2_proofs = { git = "https://github.com/privacy-scaling-explorations/halo2", package="halo2_proofs", rev="4d2c2f4e17a9df18e165fc088051838d9ac260f4" }
 halo2curves = { git = 'https://github.com/privacy-scaling-explorations/halo2curves', tag = "0.3.2" }
 poseidon = { git = "https://github.com/privacy-scaling-explorations/poseidon", rev = "807f8f555313f726ca03bdf941f798098f488ba4" }
-

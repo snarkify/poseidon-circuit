@@ -1,10 +1,11 @@
+use std::marker::PhantomData;
+
 use ff::PrimeField;
 use halo2_proofs::{
     circuit::{AssignedCell, Cell, Chip, Region, Value},
     plonk::{Advice, Column, ConstraintSystem, Error, Expression, Fixed},
     poly::Rotation,
 };
-use std::marker::PhantomData;
 
 pub type AssignedValue<F> = AssignedCell<F, F>;
 
@@ -192,6 +193,7 @@ impl<F: PrimeField, const T: usize> MainGate<F, T> {
 
     // helper function for some usecases: no copy constraints, only return out cell
     // state: (q_1, q_m, state), out: (q_o, out)
+    #[allow(clippy::type_complexity)]
     pub fn apply(
         &self,
         ctx: &mut RegionCtx<'_, F>,
