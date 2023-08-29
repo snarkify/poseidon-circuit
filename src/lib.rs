@@ -11,7 +11,8 @@ use halo2curves::pasta::{vesta, EqAffine, Fp};
 use ff::{PrimeField, FromUniformBytes};
 use rand_core::OsRng;
 use poseidon::Spec;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
+use serde_json::{Value, from_value, to_value};
 use base64::engine::general_purpose;
 
 use crate::main_gate::{MainGate, MainGateConfig, RegionCtx};
@@ -107,7 +108,7 @@ impl<F: PrimeField+FromUniformBytes<64>> Circuit<F> for TestCircuit<F> {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Request {
     private_input: Vec<u64>,
     public_input: String
@@ -115,8 +116,9 @@ pub struct Request {
 
 
 // Implement your prover's logic here
-pub fn prove(req: &Request) -> String {
+pub fn prove(raw_req: Value) -> String {
     println!("-----running Poseidon Circuit-----");
+    let req: Request = from_value(raw_req).unwrap();
     const K:u32 = 10;
     let params: ParamsIPA<vesta::Affine> = ParamsIPA::<EqAffine>::new(K);
     // private input
@@ -155,8 +157,9 @@ mod tests {
             public_input: "13037709793114148810823325920380362524528554380279235267325741570708489436263".to_string()
         };
 
+        let json_value: Value = to_value(&req).unwrap();
         // Call the function
-        let proof = prove(&req);
+        let proof = prove(json_value);
 
         // Basic test: just check if we get some proof output.
         // (For more advanced tests, you might want to verify the proof if applicable)
