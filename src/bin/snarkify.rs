@@ -12,15 +12,18 @@ use ff::{PrimeField, FromUniformBytes};
 use rand_core::OsRng;
 use poseidon::Spec;
 use serde::{Serialize, Deserialize};
-use serde_json::{Value, from_value, to_value};
 use base64::engine::general_purpose;
+use snarkify_sdk::prover::ProofHandler;
 
 use crate::main_gate::{MainGate, MainGateConfig, RegionCtx};
 use crate::poseidon_circuit::PoseidonChip;
 
-pub mod poseidon_hash;
-pub mod poseidon_circuit;
-pub mod main_gate;
+#[path = "../poseidon_hash.rs"]
+mod poseidon_hash;
+#[path = "../poseidon_circuit.rs"]
+mod poseidon_circuit;
+#[path = "../main_gate.rs"]
+mod main_gate;
 
 const T: usize = 3;
 const RATE: usize = 2;
@@ -108,61 +111,46 @@ impl<F: PrimeField+FromUniformBytes<64>> Circuit<F> for TestCircuit<F> {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct Request {
+struct PoseidonProver {}
+
+#[derive(Deserialize)]
+pub struct Input {
     private_input: Vec<u64>,
     public_input: String
 }
 
+impl ProofHandler for PoseidonProver {
+    type Input = Input;
+    type Output = String;
+    type Error = ();
 
-// Implement your prover's logic here
-pub fn prove(raw_req: Value) -> String {
-    println!("-----running Poseidon Circuit-----");
-    let req: Request = from_value(raw_req).unwrap();
-    const K:u32 = 10;
-    let params: ParamsIPA<vesta::Affine> = ParamsIPA::<EqAffine>::new(K);
-    // private input
-    let mut inputs = Vec::new();
-    for i in 0..5 {
-        inputs.push(Fp::from(req.private_input[i]));
+    fn prove(data: Self::Input) -> Result<Self::Output, Self::Error> {
+        const K:u32 = 10;
+        let params: ParamsIPA<vesta::Affine> = ParamsIPA::<EqAffine>::new(K);
+        // private input
+        let mut inputs = Vec::new();
+        for i in 0..5 {
+            inputs.push(Fp::from(data.private_input[i]));
+        }
+        let circuit = TestCircuit::new(inputs);
+
+        let vk = keygen_vk(&params, &circuit).expect("keygen_vk should not fail");
+        let pk = keygen_pk(&params, vk, &circuit).expect("keygen_pk should not fail");
+        // let out_hash = Fp::from_str_vartime("13037709793114148810823325920380362524528554380279235267325741570708489436263").unwrap();
+        let out_hash = Fp::from_str_vartime(&data.public_input).unwrap();
+        let public_inputs: &[&[Fp]] = &[&[out_hash]];
+        let mut transcript = Blake2bWrite::<_, EqAffine, Challenge255<_>>::init(vec![]);
+        create_proof::<IPACommitmentScheme<_>, ProverIPA<_>, _, _, _, _>(&params, &pk, &[circuit], &[public_inputs], OsRng, &mut transcript)
+                    .expect("proof generation should not fail");
+
+        let proof = transcript.finalize();
+        let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
+        let strategy = SingleStrategy::new(&params);
+        verify_proof(&params, pk.get_vk(), strategy, &[public_inputs], &mut transcript).unwrap();
+        Ok(general_purpose::STANDARD.encode(proof))
     }
-    let circuit = TestCircuit::new(inputs);
-
-    let vk = keygen_vk(&params, &circuit).expect("keygen_vk should not fail");
-    let pk = keygen_pk(&params, vk, &circuit).expect("keygen_pk should not fail");
-    // let out_hash = Fp::from_str_vartime("13037709793114148810823325920380362524528554380279235267325741570708489436263").unwrap();
-    let out_hash = Fp::from_str_vartime(&req.public_input).unwrap();
-    let public_inputs: &[&[Fp]] = &[&[out_hash]];
-    let mut transcript = Blake2bWrite::<_, EqAffine, Challenge255<_>>::init(vec![]);
-    create_proof::<IPACommitmentScheme<_>, ProverIPA<_>, _, _, _, _>(&params, &pk, &[circuit], &[public_inputs], OsRng, &mut transcript)
-                .expect("proof generation should not fail");
-
-    let proof = transcript.finalize();
-    let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(&proof[..]);
-    let strategy = SingleStrategy::new(&params);
-    verify_proof(&params, pk.get_vk(), strategy, &[public_inputs], &mut transcript).unwrap();
-    println!("-----poseidon circuit works fine-----");
-    general_purpose::STANDARD.encode(proof)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_prove() {
-        // Setup a sample request
-        let req = Request {
-            private_input: vec![0, 1, 2, 3, 4],
-            public_input: "13037709793114148810823325920380362524528554380279235267325741570708489436263".to_string()
-        };
-
-        let json_value: Value = to_value(&req).unwrap();
-        // Call the function
-        let proof = prove(json_value);
-
-        // Basic test: just check if we get some proof output.
-        // (For more advanced tests, you might want to verify the proof if applicable)
-        assert!(!proof.is_empty(), "Proof should not be empty");
-    }
+fn main() -> Result<(), std::io::Error> {
+    snarkify_sdk::run::<PoseidonProver>()
 }
