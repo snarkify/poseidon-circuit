@@ -1,9 +1,10 @@
-use std::marker::PhantomData;
-use halo2_proofs::{
-    circuit::{AssignedCell, Chip, Cell, Region, Value},
-    plonk::{Advice, Column, ConstraintSystem, Expression, Fixed, Error}, 
-    poly::Rotation};
 use ff::PrimeField;
+use halo2_proofs::{
+    circuit::{AssignedCell, Cell, Chip, Region, Value},
+    plonk::{Advice, Column, ConstraintSystem, Error, Expression, Fixed},
+    poly::Rotation,
+};
+use std::marker::PhantomData;
 
 pub type AssignedValue<F> = AssignedCell<F, F>;
 
@@ -13,12 +14,9 @@ pub struct RegionCtx<'a, F: PrimeField> {
     pub offset: usize,
 }
 
-impl<'a, F:PrimeField> RegionCtx<'a, F> {
+impl<'a, F: PrimeField> RegionCtx<'a, F> {
     pub fn new(region: Region<'a, F>, offset: usize) -> Self {
-        RegionCtx {
-            region,
-            offset,
-        }
+        RegionCtx { region, offset }
     }
 
     pub fn offset(&self) -> usize {
@@ -29,7 +27,7 @@ impl<'a, F:PrimeField> RegionCtx<'a, F> {
         self.region
     }
 
-     pub fn assign_fixed<A, AR>(
+    pub fn assign_fixed<A, AR>(
         &mut self,
         annotation: A,
         column: Column<Fixed>,
@@ -73,19 +71,19 @@ pub enum WrapValue<F: PrimeField> {
     Zero,
 }
 
-impl<F:PrimeField> From<Value<F>> for WrapValue<F> {
+impl<F: PrimeField> From<Value<F>> for WrapValue<F> {
     fn from(val: Value<F>) -> Self {
         WrapValue::Unassigned(val)
     }
 }
 
-impl<F:PrimeField> From<AssignedValue<F>> for WrapValue<F> {
+impl<F: PrimeField> From<AssignedValue<F>> for WrapValue<F> {
     fn from(val: AssignedValue<F>) -> Self {
         WrapValue::Assigned(val)
     }
 }
 
-impl<F:PrimeField> From<&AssignedValue<F>> for WrapValue<F> {
+impl<F: PrimeField> From<&AssignedValue<F>> for WrapValue<F> {
     fn from(val: &AssignedValue<F>) -> Self {
         WrapValue::Assigned(val.clone())
     }
@@ -109,7 +107,7 @@ pub struct MainGateConfig<const T: usize> {
 #[derive(Debug)]
 pub struct MainGate<F: PrimeField, const T: usize> {
     config: MainGateConfig<T>,
-    _marker: PhantomData<F>
+    _marker: PhantomData<F>,
 }
 
 impl<F: PrimeField, const T: usize> Chip<F> for MainGate<F, T> {
@@ -125,7 +123,6 @@ impl<F: PrimeField, const T: usize> Chip<F> for MainGate<F, T> {
     }
 }
 
-
 impl<F: PrimeField, const T: usize> MainGate<F, T> {
     pub fn new(config: MainGateConfig<T>) -> Self {
         Self {
@@ -139,7 +136,7 @@ impl<F: PrimeField, const T: usize> MainGate<F, T> {
         adv_cols: &mut (impl Iterator<Item = Column<Advice>> + Clone),
         fix_cols: &mut (impl Iterator<Item = Column<Fixed>> + Clone),
     ) -> MainGateConfig<T> {
-        assert!(T>=2);
+        assert!(T >= 2);
         let state = [0; T].map(|_| adv_cols.next().unwrap());
         let input = adv_cols.next().unwrap();
         let out = adv_cols.next().unwrap();
@@ -195,52 +192,58 @@ impl<F: PrimeField, const T: usize> MainGate<F, T> {
 
     // helper function for some usecases: no copy constraints, only return out cell
     // state: (q_1, q_m, state), out: (q_o, out)
-    pub fn apply(&self, ctx: &mut RegionCtx<'_, F>, state: (Option<Vec<F>>, Option<F>, Option<Vec<WrapValue<F>>>), 
-        rc: Option<F>, out: (F, WrapValue<F>)) -> Result<AssignedValue<F>, Error> {
+    pub fn apply(
+        &self,
+        ctx: &mut RegionCtx<'_, F>,
+        state: (Option<Vec<F>>, Option<F>, Option<Vec<WrapValue<F>>>),
+        rc: Option<F>,
+        out: (F, WrapValue<F>),
+    ) -> Result<AssignedValue<F>, Error> {
         if let Some(q_1) = state.0 {
             for (i, val) in q_1.iter().enumerate() {
-                ctx.assign_fixed(||"q_1", self.config.q_1[i], *val)?;
+                ctx.assign_fixed(|| "q_1", self.config.q_1[i], *val)?;
             }
         }
         if let Some(q_m_val) = state.1 {
-            ctx.assign_fixed(||"q_m", self.config.q_m, q_m_val)?;
+            ctx.assign_fixed(|| "q_m", self.config.q_m, q_m_val)?;
         }
         if let Some(state) = state.2 {
             for (i, val) in state.iter().enumerate() {
                 match val {
                     WrapValue::Unassigned(vv) => {
-                        ctx.assign_advice(||"state", self.config.state[i], *vv)?;
-                    },
+                        ctx.assign_advice(|| "state", self.config.state[i], *vv)?;
+                    }
                     WrapValue::Assigned(avv) => {
-                        let si = ctx.assign_advice(||"state", self.config.state[i], avv.value().copied())?;
+                        let si = ctx.assign_advice(
+                            || "state",
+                            self.config.state[i],
+                            avv.value().copied(),
+                        )?;
                         ctx.constrain_equal(si.cell(), avv.cell())?;
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
         }
 
         if let Some(rc_val) = rc {
-            ctx.assign_fixed(||"rc", self.config.rc, rc_val)?;
+            ctx.assign_fixed(|| "rc", self.config.rc, rc_val)?;
         }
 
-        ctx.assign_fixed(||"q_o", self.config.q_o, out.0)?;
+        ctx.assign_fixed(|| "q_o", self.config.q_o, out.0)?;
 
         let res = match out.1 {
-            WrapValue::Unassigned(vv) => {
-                ctx.assign_advice(||"out", self.config.out, vv)?
-            },
+            WrapValue::Unassigned(vv) => ctx.assign_advice(|| "out", self.config.out, vv)?,
             WrapValue::Assigned(avv) => {
-                let out = ctx.assign_advice(||"out", self.config.out, avv.value().copied())?;
+                let out = ctx.assign_advice(|| "out", self.config.out, avv.value().copied())?;
                 ctx.constrain_equal(out.cell(), avv.cell())?;
                 out
-            },
+            }
             WrapValue::Zero => {
                 unimplemented!() // this is not allowed
-            },
+            }
         };
         ctx.next();
         Ok(res)
     }
 }
-
