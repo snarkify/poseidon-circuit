@@ -1,15 +1,21 @@
 use base64::Engine;
 
-use halo2_proofs::plonk::{create_proof, keygen_pk, keygen_vk, verify_proof};
-use halo2_proofs::poly::commitment::ParamsProver;
-use halo2_proofs::poly::ipa::commitment::{IPACommitmentScheme, ParamsIPA};
-use halo2_proofs::poly::ipa::multiopen::ProverIPA;
-use halo2_proofs::poly::{ipa::strategy::SingleStrategy, VerificationStrategy};
-use halo2_proofs::transcript::{
-    Blake2bRead, Blake2bWrite, Challenge255, TranscriptReadBuffer, TranscriptWriterBuffer,
-};
-
 use ff::PrimeField;
+use halo2_proofs::{
+    plonk::{create_proof, keygen_pk, keygen_vk, verify_proof},
+    poly::{
+        commitment::ParamsProver,
+        ipa::{
+            commitment::{IPACommitmentScheme, ParamsIPA},
+            multiopen::ProverIPA,
+            strategy::SingleStrategy,
+        },
+        VerificationStrategy,
+    },
+    transcript::{
+        Blake2bRead, Blake2bWrite, Challenge255, TranscriptReadBuffer, TranscriptWriterBuffer,
+    },
+};
 use halo2curves::pasta::{vesta, EqAffine, Fp};
 use rand_core::OsRng;
 
