@@ -6,10 +6,10 @@ use ff::{FromUniformBytes, PrimeField};
 use halo2_proofs::circuit::{Layouter, SimpleFloorPlanner};
 use halo2_proofs::plonk::{Circuit, Column, ConstraintSystem, Error, Instance};
 
-const T: usize = 3;
-const RATE: usize = 2;
-const R_F: usize = 4;
-const R_P: usize = 3;
+const T: usize = 4;
+const RATE: usize = 3;
+const R_F: usize = 8;
+const R_P: usize = 56;
 
 #[derive(Clone, Debug)]
 pub struct TestCircuitConfig {
