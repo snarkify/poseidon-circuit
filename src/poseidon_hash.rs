@@ -194,24 +194,24 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use halo2curves::pasta::{EqAffine, Fp};
+    use halo2curves::bn256::{Fr, G1Affine};
 
     #[test]
     fn test_poseidon_hash() {
-        const T: usize = 3;
-        const RATE: usize = 2;
-        const R_F: usize = 4;
-        const R_P: usize = 3;
-        type PH = PoseidonHash<EqAffine, Fp, T, RATE>;
-        let spec = Spec::<Fp, T, RATE>::new(R_F, R_P);
+        const T: usize = 4;
+        const RATE: usize = 3;
+        const R_F: usize = 8;
+        const R_P: usize = 56;
+        type PH = PoseidonHash<G1Affine, Fr, T, RATE>;
+        let spec = Spec::<Fr, T, RATE>::new(R_F, R_P);
         let mut poseidon = PH::new(spec);
         for i in 0..5 {
-            poseidon.update(&[Fp::from(i as u64)]);
+            poseidon.update(&[Fr::from(i as u64)]);
         }
         let output = poseidon.squeeze();
-        // hex = 0x1cd3150d8e12454ff385da8a4d864af6d0f021529207b16dd6c3d8f2b52cfc67
-        let out_hash = Fp::from_str_vartime(
-            "13037709793114148810823325920380362524528554380279235267325741570708489436263",
+        // 0x2ce4016298e9e5fcaa94ccb686413e16add1bb813def8a3a0628aed46ea07749
+        let out_hash = Fr::from_str_vartime(
+            "20304616028358001435806807494046171997958789835068077254356069730773893150537"
         )
         .unwrap();
         assert_eq!(output, out_hash);
