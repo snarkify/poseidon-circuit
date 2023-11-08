@@ -18,7 +18,7 @@ It is worth noting that `MainGate` was originally designed for the [Sirius foldi
 
 
 ## Getting Started
-This repository has integrated with the [snarkify-sdk](https://github.com/snarkify/snarkify-sdk),
+This repository has integrated with the [snarkify-sdk](https://crates.io/crates/snarkify-sdk),
 facilitating effortless deployment to the [Snarkify Cloud](https://cloud.snarkify.io). With just a few clicks, you can have your prover service up
 and running, ready to handle proof requests.
 
