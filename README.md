@@ -26,7 +26,7 @@ and running, ready to handle proof requests.
 
 ## Integrate with `snarkify-sdk`
 
-For a complete example of `snarkify-sdk` integration with the Poseidon circuit, please reference to PR [#5](/../../../pull/5).
+For a complete example of `snarkify-sdk` integration with the Poseidon circuit, please reference to PR [#5](https://github.com/snarkify/poseidon-circuit/pull/5).
 
 For more information about `snarkify-sdk`, please reference to the [documentation](https://docs.snarkify.io/snarkify-cloud/integrating-snarkify-sdk).
 
