@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD as BS64, Engine};
 use ff::PrimeField;
 use halo2_proofs::{
@@ -55,6 +56,7 @@ impl Input {
     }
 }
 
+#[async_trait]
 impl ProofHandler for PoseidonProver {
     type Input = Input;
     type Output = String;
@@ -79,7 +81,7 @@ impl ProofHandler for PoseidonProver {
     /// representation of the generated zk-SNARK proof. If any step in the proof generation
     /// or verification fails, it returns an `Err(Error)`, which captures and conveys
     /// the specific stage and nature of the failure.
-    fn prove(input: Self::Input) -> Result<Self::Output, Self::Error> {
+    async fn prove(input: Self::Input) -> Result<Self::Output, Self::Error> {
         // The security parameter `k` for the construction, affecting the size and security of the proving system.
         const K: u32 = 10;
 
