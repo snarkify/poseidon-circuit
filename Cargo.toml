@@ -11,5 +11,5 @@ halo2curves = { git = 'https://github.com/privacy-scaling-explorations/halo2curv
 poseidon = { git = "https://github.com/privacy-scaling-explorations/poseidon", rev = "807f8f555313f726ca03bdf941f798098f488ba4" }
 serde = { version = "1.0", features = ["derive"] }
 base64 = "0.21.2"
-snarkify-sdk = "0.1.0-alpha.8"
+snarkify-sdk = "0.1.0-alpha.9"
 async-trait = "0.1.73"
